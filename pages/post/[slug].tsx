@@ -3,66 +3,156 @@ import Header from "../../components/Header";
 import { sanityClient, urlFor } from "../../sanity";
 import { Post } from "../../typings";
 import PortableText from "react-portable-text";
+import { useForm, SubmitHandler } from "react-hook-form";
 
 interface Props {
 	post: Post;
 }
 
+interface inputFormInput {
+	_id: string;
+	name: string;
+	email: string;
+	comment: string;
+}
+
 function Post({ post }: Props) {
+
+	const {
+		register,
+		handleSubmit,
+		formState: {errors},
+	} = useForm();
+
+	const onSubmit: SubmitHandler<inputFormInput> = async (data) => {
+		await fetch('/api/createComment', {
+			method: 'POST',
+			body: JSON.stringify(data),
+			}).then(() => {
+				console.log(data);
+			}).catch((err) => {
+				console.log(err)
+			})
+	};
+
 	return (
-		<main>
-			<Header />
+    <main>
+      <Header />
 
-			<img
-				className="h-40 w-full object-cover"
-				src={urlFor(post.mainImage).url()!}
-				alt="{post.title}"
-			/>
+      <img
+        className="h-40 w-full object-cover"
+        src={urlFor(post.mainImage).url()!}
+        alt="{post.title}"
+      />
 
-			<article className="mx-auto max-w-3xl p-5">
-				<h1 className="mt-10 mb-3 text-3xl">{post.title}</h1>
-				<h2 className="mb-2 text-xl font-light text-gray-500">{post.description}</h2>
+      <article className="mx-auto max-w-3xl p-5">
+        <h1 className="mt-10 mb-3 text-3xl">{post.title}</h1>
+        <h2 className="mb-2 text-xl font-light text-gray-500">
+          {post.description}
+        </h2>
 
-				<div className="flex items-center space-x-2">
-					<img
-						className="h-10 w-10 rounded-full"
-						src={urlFor(post.author.image).url()!}
-					/>
-					<p className="text-sm font-extralight">
-						Blog post by <span className="text-green-600">{post.author.name}</span> - published at{' '}
-						{new Date(post._createdAt).toLocaleDateString()}
-					</p>
-				</div>
+        <div className="flex items-center space-x-2">
+          <img
+            className="h-10 w-10 rounded-full"
+            src={urlFor(post.author.image).url()!}
+          />
+          <p className="text-sm font-extralight" suppressHydrationWarning>
+            Blog post by{' '}
+            <span className="text-green-600">{post.author.name}</span> -
+            published at {new Date(post._createdAt).toLocaleDateString()}
+          </p>
+        </div>
 
-				<div>
-					<PortableText
-					className=""
-						dataset={process.env.NEXT_PUBLIC_SANITY_DATASET!}
-						projectId={process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!}
-						content={post.body}
-						serializers={
-							{
-								h1: (props: any) => (
-									<h1 className="text-2xl font-bold my-5" {...props} />
-								),
-								h2: (props: any) => (
-									<h1 className="text-xl font-bold my-5" {...props} />
-								),
-								li: ({ children }: any) => (
-									<li className="ml-4 list-disc">{children}</li>
-								),
-								link: ({ href, children }: any) => (
-									<a href={href} className="text-blue-600 hover:underline">
-										{children}
-									</a>
-								)
-							}
-						}
-					/>
-				</div>
-			</article>
-		</main>
-	)
+        <div className="mt-10">
+          <PortableText
+            className=""
+            dataset={process.env.NEXT_PUBLIC_SANITY_DATASET!}
+            projectId={process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!}
+            content={post.body}
+            serializers={{
+              h1: (props: any) => (
+                <h1 className="my-5 text-2xl font-bold" {...props} />
+              ),
+              h2: (props: any) => (
+                <h1 className="my-5 text-xl font-bold" {...props} />
+              ),
+              li: ({ children }: any) => (
+                <li className="ml-4 list-disc">{children}</li>
+              ),
+              link: ({ href, children }: any) => (
+                <a href={href} className="text-blue-600 hover:underline">
+                  {children}
+                </a>
+              ),
+            }}
+          />
+        </div>
+      </article>
+
+      <hr className="my-5 mx-auto max-w-lg border border-yellow-500" />
+
+      <form
+        className="my-10 mx-auto flex max-w-2xl flex-col p-10"
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        <h3 className="text-sm text-yellow-500">Enjoyed this article?</h3>
+        <h4 className="text-3xl font-bold">Leave a comment below!</h4>
+        <hr className="mt-2 py-3" />
+
+        <input {...register('_id')} type="hidden" name="_id" value={post._id} />
+
+        <label className="mb-5 block">
+          <span className="text-grey-700">Name</span>
+          <input
+            {...register('name', { required: true })}
+            className="form-input mt-1 block w-full rounded border py-2 px-3 shadow outline-none ring-yellow-500 focus:ring-2"
+            placeholder="John Smithson"
+            type="text"
+          />
+        </label>
+
+        <label className="mb-5 block">
+          <span className="text-grey-700">Email</span>
+          <input
+            {...register('email', { required: true })}
+            className="form-input mt-1 block w-full rounded border py-2 px-3 shadow outline-none ring-yellow-500 focus:ring-2"
+            placeholder="John Smithson"
+            type="text"
+          />
+        </label>
+
+        <label className="mb-5 block">
+          <span className="text-grey-700">Comment</span>
+          <textarea
+            {...register('comment', { required: true })}
+            className="over mt-1 block w-full rounded border py-2 px-3 shadow outline-none ring-yellow-500 focus:ring-2"
+            placeholder="John Smithson"
+            rows={8}
+          />
+        </label>
+
+        {/* Errors will return when field validation fails */}
+        <div className="flex flex-col p-5">
+          {errors.name && (
+            <span className="text-red-500">- The Name Field is required</span>
+          )}
+          {errors.email && (
+            <span className="text-red-500">- The Email Field is required</span>
+          )}
+          {errors.comment && (
+            <span className="text-red-500">
+              - The Comment Field is required
+            </span>
+          )}
+        </div>
+
+        <input
+          className="focus:shadow-outline cursor-pointer rounded bg-yellow-500 py-2 px-4 font-bold text-white shadow hover:bg-yellow-400 focus:outline-none"
+          type="submit"
+        />
+      </form>
+    </main>
+  )
 }
 
 export default Post;
